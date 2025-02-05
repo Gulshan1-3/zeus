@@ -1,6 +1,6 @@
 use std::io::{self, Read, Write};
 use std::os::unix::io::AsRawFd;
-use libc::{termios, tcgetattr, tcsetattr, TCSANOW, ECHO, ICANON};
+use libc::{termios, tcgetattr, tcsetattr, TCSANOW, ECHO, ICANON,ICRNL,IXON,OPOST,ISIG,VMIN,VTIME};
 
 fn enable_raw_mode() -> termios {
     let stdin_fd = io::stdin().as_raw_fd();
@@ -16,6 +16,12 @@ fn enable_raw_mode() -> termios {
     unsafe {
         // Disable ECHO and ICANON (canonical mode)
         termios.c_lflag &= !(ECHO | ICANON);
+        termios.c_iflag &= !(ICRNL | IXON);
+        termios.c_lflag &= !(ECHO | ICANON | ISIG);
+        termios.c_iflag &= !(IXON);
+        termios.c_oflag &= !(OPOST);
+        termios.c_cc[VMIN] = 0;
+        termios.c_cc[VTIME] = 10;
         tcsetattr(stdin_fd, TCSANOW, &termios);
     }
 

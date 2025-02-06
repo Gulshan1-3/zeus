@@ -2,6 +2,10 @@ use std::io::{self, Read, Write};
 use std::os::unix::io::AsRawFd;
 use libc::{termios, tcgetattr, tcsetattr, TCSANOW, ECHO, ICANON,ICRNL,IXON,OPOST,ISIG,VMIN,VTIME};
 
+const fn ctrl_key(k: u8) -> u8 {
+    k & 0x1f
+}
+
 fn enable_raw_mode() -> termios {
     let stdin_fd = io::stdin().as_raw_fd();
     let mut termios = termios { ..unsafe { std::mem::zeroed() } };
@@ -21,7 +25,7 @@ fn enable_raw_mode() -> termios {
         termios.c_iflag &= !(IXON);
         termios.c_oflag &= !(OPOST);
         termios.c_cc[VMIN] = 0;
-        termios.c_cc[VTIME] = 10;
+        termios.c_cc[VTIME] = 100;
         tcsetattr(stdin_fd, TCSANOW, &termios);
     }
 
@@ -39,7 +43,7 @@ fn main() {
     // Enable raw mode
     let original_termios = enable_raw_mode();
 
-    println!("Raw mode enabled. Press 'q' to quit.");
+    println!("Raw mode enabled. Press 'ctrl + q' to quit.");
 
     let mut buffer = [0; 1];
     let stdin = io::stdin();
@@ -56,7 +60,8 @@ fn main() {
         }
         
         io::stdout().flush().unwrap(); // Ensure immediate output
-        if c == 'q' {
+          
+        if buffer[0] == ctrl_key( b'q') {
             break;
         }
     }

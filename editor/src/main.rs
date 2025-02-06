@@ -1,20 +1,24 @@
 use std::io::{self, Read, Write};
 use std::os::unix::io::AsRawFd;
 use libc::{termios, tcgetattr, tcsetattr, TCSANOW, ECHO, ICANON,ICRNL,IXON,OPOST,ISIG,VMIN,VTIME};
+use std::process;
 
 
-// Global editor configuration struct
-struct EditorConfig {
-    orig_termios: termios,
-}
-
-// Global instance (similar to global 'E' in C)
-static mut EDITOR_CONFIG: Option<EditorConfig> = None;
 
 
 const fn ctrl_key(k: u8) -> u8 {
     k & 0x1f
 }
+
+fn die(s: &str) -> ! {
+    // Clear screen before dying
+    print!("\x1b[2J\x1b[H");
+    io::stdout().flush().unwrap();
+
+    eprintln!("Error: {}", s);
+    process::exit(1);
+}
+
 
 fn editor_draw_rows() -> io::Result<()> {
     let stdout = io::stdout();
@@ -78,6 +82,8 @@ fn disable_raw_mode(original: termios) {
     unsafe {
         tcsetattr(stdin_fd, TCSANOW, &original);
     }
+
+    die("tcsetattr");
 }
 
 fn main() {

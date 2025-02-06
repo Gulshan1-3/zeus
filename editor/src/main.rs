@@ -6,6 +6,12 @@ const fn ctrl_key(k: u8) -> u8 {
     k & 0x1f
 }
 
+fn editor_refresh_screen() -> io::Result<()> {
+    print!("\x1b[2J");
+    io::stdout().flush()?;
+    Ok(())
+}
+
 fn enable_raw_mode() -> termios {
     let stdin_fd = io::stdin().as_raw_fd();
     let mut termios = termios { ..unsafe { std::mem::zeroed() } };
@@ -50,6 +56,7 @@ fn main() {
     let mut handle = stdin.lock();
 
     while handle.read(&mut buffer).unwrap_or(0) == 1 {
+        let _ = editor_refresh_screen();
         let b = buffer[0];
         let c = b as char;
         print!("{}", c);

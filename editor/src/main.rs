@@ -2,13 +2,48 @@ use std::io::{self, Read, Write};
 use std::os::unix::io::AsRawFd;
 use libc::{termios, tcgetattr, tcsetattr, TCSANOW, ECHO, ICANON,ICRNL,IXON,OPOST,ISIG,VMIN,VTIME};
 
+
+// Global editor configuration struct
+struct EditorConfig {
+    orig_termios: termios,
+}
+
+// Global instance (similar to global 'E' in C)
+static mut EDITOR_CONFIG: Option<EditorConfig> = None;
+
+
 const fn ctrl_key(k: u8) -> u8 {
     k & 0x1f
 }
 
+fn editor_draw_rows() -> io::Result<()> {
+    let stdout = io::stdout();
+    let mut handle = stdout.lock();
+    
+    for _ in 0..24 {
+        write!(handle, "~\r\n")?;
+    }
+    
+    handle.flush()?;
+    Ok(())
+}
+
 fn editor_refresh_screen() -> io::Result<()> {
-    print!("\x1b[2J");
-    io::stdout().flush()?;
+    let stdout = io::stdout();
+    let mut handle = stdout.lock();
+    
+    // Clear screen and move cursor to top-left
+    write!(handle, "\x1b[2J")?;   // Clear entire screen
+    write!(handle, "\x1b[H")?;    // Move cursor to top-left
+    
+    // Draw rows
+    drop(handle);  // Release lock before calling draw_rows
+    editor_draw_rows()?;
+    
+    let mut handle = stdout.lock();
+    write!(handle, "\x1b[H")?;    // Move cursor to top-left again
+    
+    handle.flush()?;
     Ok(())
 }
 
